@@ -261,3 +261,127 @@ export default {
 1. 执行代码：`yarn create vue`
 
 2. 安装依赖：`yarn`
+
+## 代码分析
+
+main.js ：
+
+```js
+import { createApp } from 'vue'
+import App from './App.vue'
+
+
+/* 
+    App.vue是根组件
+        - createApp(App) 将根组件关联到应用上
+            - 会返回一个应用的实例
+        - app.mount("#app") 将应用挂载到页面中
+            - 会返回一个根组件的实例，组件的实例通常可以命名为vm
+            - 组件实例是一个Proxy对象（代理对象）
+*/
+
+
+const app = createApp(App)
+
+const vm = app.mount("#app")
+
+// 将vm设置为全局变量
+window.vm = vm
+window.app = app
+
+// createApp(App).mount('#app')
+
+// console.log(vm)
+```
+
+App.vue：
+
+```vue
+<script>
+export default {
+    //data是一个函数（方法）
+    //在data中，this就是当前的组件实例（vm），如果使用箭头函数，则无法通过this来访问组件实例
+    //使用vue时，尽量减少使用箭头函数
+  data() {
+      
+        // 直接向组件实例中添加的属性不会被vue所代理，不是响应数据，修改后页面不会发生变化
+        this.name = "孙悟空"
+
+    
+        //data会返回一个对象，vue会对该对象进行代理，从而将其转换为响应式数据（网页随数据变而变）
+        return {
+            message:"Vue!"
+          }
+        }
+      }
+</script>
+
+<template>
+    <h1>{{ message }}</h1>
+</template>
+```
+
+## 响应式原理
+
+### 代理
+
+我们创建一个对象，如果直接修改对象的属性，则仅仅是修改了属性，没有做其他事情，这种操作只会影响对象自身，并不会导致元素的重新渲染。而我们希望在修改一个属性的同时，可以进行一些其他的操作，比如触发元素重新渲染等。要实现这个目的，我们就必须对对象进行改造，Vue 3 中使用的是代理模式来完成对象的改造。
+
+```js
+//创建一个对象
+const obj = {
+    name: "Vue",
+    age: 4,
+}
+/*
+    如果直接修改对象的属性，则仅仅是修改了属性，没有做其他事情，这种操作只会影响对象自身，不会导致元素的重新渲染。
+
+*/
+
+//为对象创建一个代理
+const handler = {
+    //get用来指定读取数据时的行为，它的返回值就是最终读取到的值
+    //指定get后，再通过代理读取对象数据时，就会调用get方法来获取值
+    get(target, prop, receiver) {
+        /*
+            三个参数：
+                - target：被代理的对象。
+                - prop：读取的属性。
+                - receiver：代理对象。
+        
+        */
+            //可在返回值之前做其他操作...
+            return target[prop]
+    },
+    
+    //set会在通过修改代理时调用
+    Set(target,prop,value,receiver) {
+        target[prop] = value;
+        
+        //可在修改值之后做其他操作...
+    }
+
+    
+}      //handler用来指定代理的行为
+
+//创建代理
+const proxy = new Proxy(obj, handler)
+
+//console.log(proxy)
+
+//console.log(proxy.name)
+
+//修改代理的属性可以间接的修改对象的属性(调用handler里的set方法)
+proxy.age = 8;
+
+//读取属性的行为实则是在调用handler里的get方法
+console.log(proxy.age);
+```
+
+在 vue 中。data () 返回的对象会被vue所代理，vue代理后，当我们通过代理去读取属性时，返回值之前，它会先做一个跟踪的操作`track() 追踪谁用了我这个属性`， 当我们通过代理去修改属性时，修改后，会通知之前所有用到该值的位置进行更新`trigger() 触发所有的使用该值的位置进行更新`。
+
+### 代理对象
+
+`vm.$data` 是实际的代理对象，通过 vm 可以直接访问到 $data 中的属性。
+
+`vm.$data.msg ` 等价于 `vm.msg`
