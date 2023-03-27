@@ -378,10 +378,84 @@ proxy.age = 8;
 console.log(proxy.age);
 ```
 
-在 vue 中。data () 返回的对象会被vue所代理，vue代理后，当我们通过代理去读取属性时，返回值之前，它会先做一个跟踪的操作`track() 追踪谁用了我这个属性`， 当我们通过代理去修改属性时，修改后，会通知之前所有用到该值的位置进行更新`trigger() 触发所有的使用该值的位置进行更新`。
+在 vue 中，data () 返回的对象会被vue所代理，vue代理后，当我们通过代理去读取属性时，返回值之前，它会先做一个跟踪的操作`track() 追踪谁用了我这个属性`， 当我们通过代理去修改属性时，修改后，会通知之前所有用到该值的位置进行更新`trigger() 触发所有的使用该值的位置进行更新`。
 
 ### 代理对象
+
+#### data
 
 `vm.$data` 是实际的代理对象，通过 vm 可以直接访问到 $data 中的属性。
 
 `vm.$data.msg ` 等价于 `vm.msg`
+
+vue 在构建响应式对象时，会同时将该对象中的属性也设置成响应式属性，即我们也可以响应式的修改响应式对象中的属性。该对象也叫深层响应式对象。
+
+在有些场景下，我们不希望用户改掉对象里面的深层属性，这时我们可以通过 `shallowReactive()` 来创建一个浅层的响应式对象。、
+
+```js
+import { shallowReactive } from "vue"
+export default{
+	data({
+            return shallowReactive({
+       			 msg: "Hello Vue!",
+       			 stu: {
+           				name: "小王",
+            			age: 18,
+            			gender: "男",
+            			friend: {
+                			name: "老王"
+           				 }
+        			}
+    			})
+	})
+}					//通过使用shallowReactive()，这个对象就只能响应式地修改第一层属性，即mag和stu，但不能单独的修改stu里面的属性
+```
+
+如果我们有暂时不需要使用，但后面有可能使用的属性，我们也添加到 data 返回的对象中，将其值设置为 null ，这样后期修改属性就会很方便。
+
+#### methods
+
+data 用来指定实例对象中的响应式属性，而 methods 是用来指定实例对象中的方法。
+
+-  它是一个对象，可以在它里边定义多个方法。
+- 这些方法最终都会被挂载到组件实例上。
+- 可以直接通过组件实例来调用这些方法。
+
+- 所有组件实例上的属性都可以直接在模板中访问。
+- methods 中函数的 this 会被自动绑定为组件实例。
+
+## 计算属性
+
+computed 用来指定计算属性。当我们访问计算属性是，会将其中的 return 的内容显示出来。因为这是通过函数来返回结果，所有可以通过编写逻辑来返回比较复杂的内容。计算属性只在其依赖的数据发送改变时才会重新执行（会对数据进行缓存），而 methods 中的方法每次组件重新渲染都会调用，且 methods 调用时需话括号（( )）。computed 不需要。
+
+```js
+comuted:{
+    info:function(){
+        return:"哈哈"
+    }
+}
+```
+
+在计算属性的 getter 中，尽量只做读取相关的逻辑，不要执行那些会产生（副）作用的代码。可以为计算书属性设置 setter ，使得计算属性可写，但是不建议这么做。
+
+```js
+data(){
+    return{
+        firstName:"王"
+        lastName："老"
+    }
+},
+name:{
+    get(){
+        return this.lastName + this.firstName;
+    },
+    set(value){							//set在计算属性被修改时调用
+        this.lastName = value[0];
+        this.firstName = value.slice(1);
+    }
+}
+```
+
+## 安装调试工具
+
+浏览器中安装拓展插件 `Vue.js devtools`
