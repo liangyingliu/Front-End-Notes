@@ -157,7 +157,7 @@ template 是模板，它决定了组件的最终样子。定义模板的方式�
    createApp(App).mount("#app")
    ```
 
-## vue组件化
+## vue 组件化
 
 我们可以根据需要来自定义所想要的组件，如：
 
@@ -459,3 +459,248 @@ name:{
 ## 安装调试工具
 
 浏览器中安装拓展插件 `Vue.js devtools`
+
+## 组合式 API
+
+之前的内容都是选项式 API ，但我们更常用的是组合式 API 。组合式 API 使用的是函数，我们可以在里面定义变量等内容，而选项式 API 使用的对象，里面不能定义变量之类的内容。
+
+```vue
+<script>
+import { reactive } from "vue"
+export default {
+    setup() {
+        // 定义变量
+        // 在组合式api中直接声明的变量，就是一个普通的变量，不是响应式属性
+        //      修改这些属性时，不会在视图中产生效果
+        let msg = "今天天气真不错!"
+        let count = 0
+        //可以通过 reactive()来创建一个响应式的对象
+        const stu = reactive({
+            name: "孙悟空",
+            age: 18,
+            gender: "男"
+        })
+        function changeAge(){
+            stu.age = 44
+        }
+        // 在setup()中可以通过返回值来指定那些内容要暴露给外部
+        // 暴露后的内容，可以在模板中直接使用
+        return {
+            msg,
+            count,
+            stu,
+            changeAge
+        }
+    }
+}
+</script>
+<template>
+    <h1>演示组合式API</h1>
+    <h2>{{ msg }}</h2>
+    <h3>{{ count }}</h3>
+    <button @click="changeAge">点我一下</button>
+    <h2>{{ stu.name }} -- {{ stu.age }} -- {{ stu.gender }}</h2>
+</template>
+```
+
+ 下面这种写法更方便：
+
+```vue
+<script setup>
+import { reactive } from "vue"
+const msg = "我爱Vue"
+const count = 0
+const stu = reactive({
+    name: "孙悟空"
+})
+function fn() {
+    alert("哈哈哈，好快乐！")
+}
+</script>
+<template>
+    <h1 @click="fn">组合式的API</h1>
+    <h2>{{ msg }} -- {{ count }}</h2>
+    <h3>{{ stu.name }}</h3>
+</template>
+```
+
+## reactive ( ) 与 ref ( )
+
+reactive ( ) 返回一个对象的响应式代理，返回的是个深层响应式对象。我们可以使用 shallowactive ( ) 创建一个浅层响应式代理。但有个缺点：只能返回对象的响应式代理（只能是对象），不能处理原始值。 而 ref ( ) 与 reactive ( ) 用法基本一样，但其可以接受任意值，并返回它的响应式代理。ref ( ) 在生成响应式代理时，是将值包装成了一个对象，将传入的值放在 value 属性里面。如`0 --> {value:0}`、`{name:"老王",age:28} --> {value:{name:"老王",age:28}} `。但在模板中， ref ( ) 对象会自动解包，不用再写 value 。
+
+```vue
+<script setup>
+import { reactive, ref } from "vue"
+import { $ref } from "vue/macros"
+/* 
+    reactive()
+        - 返回一个对象的响应式代理
+        - 返回的是一个深层响应式对象
+        - 也可以使用shallowReactive()创建一个浅层响应式对象
+        - 缺点：
+            - 只能返回对象的响应式代理！不能处理原始值
+    ref()
+        - 接收一个任意值，并返回它的响应式代理
+*/
+const stu = reactive({
+    name: "老王"
+})
+// ref在生成响应式代理时，它是将值包装为了一个对象 0  --> {value:0}
+// 访问ref对象时，必须通过 对象.value 来访问其中的值
+// 在模板中，ref对象会被自动解包
+let count = $ref(0) // 生成一个0的响应式代理
+// count = 10 // 改变量只会影响到变量自己，在js中，无法实现对一个变量的代理
+console.log(count)
+// vue给我们提供了一个语法糖，使得ref对象在script标签中也可以自动解包
+// $是一个实验性的，需要在vite插件中做一些配置 reactivityTransform:true
+function fn() {
+    // count自增
+    count++
+}
+</script>
+<template>
+    <h1>组合式的API</h1>
+    <h2 @click="fn">{{ count }}</h2>
+</template>
+```
+
+## 模板
+
+模板，即`<template> </template>` 。
+
+- 在模板中，可以直接访问到组件中声明的变量。
+- 除了组件中的变量外，vue也为我们提供了一些全局对象可以访问：比如：Date、Math、RegExp ...等，除此之外，也可以通过app对象来向vue中添加一些全局变量 `app.config.globalProperties`。
+- 使用插值(双大括号)，只能使用表达式，即有返回值的语句。
+- 插值实际上就是在修改元素的 `textContent`，如果内容中含有标签，标签会被转义显示，不会作为标签生效。
+
+### 指令
+
+我们要使内容中的标签生效，可以使用指令。
+
+- 指令模板中为标签设置的一些特殊属性，它可以用来设置标签如何显示内容。
+- 指令使用 `v-` 开头。
+  - `v-text` 将表达式的值作为元素的 `textContent` 插入，作用同 `{{ }}`。
+  - `v-html` 将表达式的值作为元素的 `innerHTML` 插入，有 `xss` 攻击的风险。
+  - `v-bind` 当我们需要为标签动态的设置属性时使用，可以简写为 `:` 。注意，如果为一个布尔值设置属性时，若该值为：`""`，即空串时，在这里会被当成真值。
+- 使用指令时，不需要通过 `{{ }}` 来指定表达式。
+
+## Style
+
+在组件中，我们可以直接通过 `style` 标签来编写样式，如果直接通过 ``style 标签写样式，此时编写的样式是全局样式， 会影响到所有的组件。
+
+```vue
+<style>
+h1 {
+    background-color: #bfa;
+}
+.box1 {
+    width: 200px;
+    height: 200px;
+    background-color: yellowgreen;
+}
+</style>
+```
+
+### Style-scoped
+
+若我们需要为单独的组件设置样式，可以为 `style` 标签添加一个 `scoped` 属性，这样样式将成为局部样式，只对当前组件生效 。
+
+```vue
+<style scoped>
+h1 {
+    background-color: orange;
+}
+.box1 {
+    width: 200px;
+    height: 200px;
+    background-color: #bfa;
+}
+```
+
+实现原理：
+
+当我们在组件中使用 `scoped` 样式时，vue 会自动为组件中的所有元素生成一个随机的属性，形如：`data-v-7a7a37b1`， 生成后，所有的选择器都会在最后添加一个 ` [data-v-7a7a37b1]` 如：` [data-v-7a7a37b1]` 、`.box1 -> .box1[data-v-7a7a37b1]`。
+
+**注意： 随机生成的属性，除了会添加到当前组件内的所有元素上，也会添加到当前组件引入的其他组件的根元素上，这样设计是为了，可以通过父组件来为子组件设置一些样式。**
+
+如果有多个根元素，则不会设置在根元素上。若我们要设置的元素不是根元素，我们仍希望能设置其样式，可以使用 `deep()` 来实现。
+
+```vue
+<style sscoped>
+/* 
+将组件中所有的 h2的字体颜色设置为黄色 
+.app h2 --> .app h2[xxxxx]
+.app h2[data-v-7a7a37b1] 没用deep
+.app[data-v-7a7a37b1] h2 用了deep
+*/
+.app :deep(h2) {
+    color: yellow;
+}
+</style>
+```
+
+`:global()` 全局选择器：
+
+```vue
+<style sscoped>
+:global(div) {
+    border: 1px red solid;
+}
+</style>
+```
+
+### Style-module
+
+```vue
+<script setup>
+import MyBox from "./components/MyBox.vue"
+</script>
+
+<template>
+    <div class="app">
+        <h1>今天天气真不错！</h1>
+        <div :class="classes.box1">App中的box1</div>
+        <MyBox></MyBox>
+    </div>
+</template>
+<!-- 
+  css 模块
+    - 自动的对模块中的类名进行hash化来确保类名的唯一性
+    - 在模板中可以通过 $style.类名 使用
+    - 也可以通过module的属性值来指定变量名
+-->
+<!--
+    <style module="classes">
+    .box1 {
+        background-color: #bfa;
+    }
+-->
+<style module>
+.box1 {
+    background-color: #bfa;
+}
+</style>
+```
+
+## 类和内联样式
+
+```vue
+<script setup>
+const arr = ["box1", "box2", "box3"]
+const arr2 = [{ box1: true }, { box2: false }, { box3: true }]
+const style = {
+    color: "red",
+    backgroundColor: "#bfa"
+}
+</script>
+<template>
+    <h1 class="header">我爱Vue</h1>
+    <div :class="arr2" :style="style">我是div</div>
+</template>
+<style scoped>
+.header {
+    background-color: orange;
+}
+</style>
+```
+
