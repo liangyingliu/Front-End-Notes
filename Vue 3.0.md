@@ -578,10 +578,81 @@ function fn() {
 我们要使内容中的标签生效，可以使用指令。
 
 - 指令模板中为标签设置的一些特殊属性，它可以用来设置标签如何显示内容。
+
 - 指令使用 `v-` 开头。
   - `v-text` 将表达式的值作为元素的 `textContent` 插入，作用同 `{{ }}`。
+  
   - `v-html` 将表达式的值作为元素的 `innerHTML` 插入，有 `xss` 攻击的风险。
+  
   - `v-bind` 当我们需要为标签动态的设置属性时使用，可以简写为 `:` 。注意，如果为一个布尔值设置属性时，若该值为：`""`，即空串时，在这里会被当成真值。
+  
+  - `v-show` 设置一个内容是否显示。需要一个布尔值为参数，值为 `true` 则显示内容，为 `false` 则不显示。它是通过设置 `display`属性来设置显示与否的。（通过`css` 来切换，不涉及组件的重新渲染，性能较好。但是，在初始化时，会将所有组件进行初始化，即使暂时不需要的组件也需一起初始化，其初始化性能较差。）
+  
+  - `v-if` 可以根据表达式的值决定是否显示内容，会直接将元素删除。（通过删除和添加元素来实现，会触发组件的重新渲染，切换的性能较差。只会初始化需要使用的组件，初始化性能较好。）可以跟其他指令一起使用，如 `v-else` 和 `v-else-if`。也可以配合 `template` 使用：
+  
+    ```vue
+    <template v-if="isShow">
+        <h2>我是一个h2</h2>
+        <h3>我是h3</h3>
+    </template>
+    ```
+  
+  - `v-for` 遍历数组中的内容。在使用`v-for`遍历时，旧的结构和新的结构是按照顺序进行对比的,有变化才修改，没有发生变化的就不修改。在使用`v-for`时，可以为元素指定一个唯一的 key，有了 key 以后，元素再比较时就会按照相同的 key 去比较而不是顺序。
+  
+    ```vue
+    <script setup>
+    import { ref } from "vue"
+    const arr = ref(["孙悟空", "猪八戒", "沙和尚", "唐僧"])
+    const arr2 = ref([
+        {
+            id: 1,
+            name: "孙悟空",
+            age: 18
+        },
+        {
+            id: 2,
+            name: "猪八戒",
+            age: 28
+        },
+        {
+            id: 3,
+            name: "沙和尚",
+            age: 38
+        }
+    ])
+    </script>
+    <template>
+        <button @click="arr.push('白骨精')">点我一下</button>
+        <button @click="arr2.unshift({ id: 4, name: '唐僧', age: 16 })">
+            点我一下2
+        </button>
+        <ul>
+            <li v-for="name of arr">{{ name }}</li>
+        </ul>
+    
+        <ul>
+            <li v-for="(name, index) in arr">{{ index }} - {{ name }}</li>
+        </ul>
+    
+        <div v-for="obj in arr2">{{ obj.name }} -- {{ obj.age }}</div>
+        <hr />
+        <!-- <template v-for="obj in arr2">{{ obj.name }} -- {{ obj.age }}</template> -->
+    
+        <!-- 
+            我们在使用v-for遍历时，旧的结构和新的结构是按照顺序进行对比的,有变化才修改，没有发生变化的就不修改。
+            在使用v-for时，可以为元素指定一个唯一的key，有了key以后，元素再比较时就会按照相同的key去比较而不是顺序。
+        -->
+        <ul>
+            <li v-for="({ id, name, age }, index) in arr2" :key="id">
+                {{ name }} -- {{ age }}
+                <input type="text" />
+            </li>
+        </ul>
+    </template>
+    ```
+  
+    
+  
 - 使用指令时，不需要通过 `{{ }}` 来指定表达式。
 
 ## Style
@@ -704,3 +775,113 @@ const style = {
 </style>
 ```
 
+## props
+
+​		我们在使用 vue 时时常会有父组件和子组件间通讯的需求，因此引入 `props` 。父组件可以通过`props` 将数据传递给子组件。 且该数据是只读的，无法修改。
+
+使用方法：
+
+- 现在子组件中定义 `props` 。
+
+  ```js
+  const props = defineProps(["a","b","c"])
+  ```
+
+- 父组件给子组件传递数据。
+
+  ```vue
+  <Mybutton a="1" b="2" c="3"></Mybutton>
+  ```
+
+除了使用字符串数组来声明 prop 外，还可以使用对象的形式：
+
+```js
+export default {
+  props: {
+    title: String,	//指定类型
+    likes: Number
+  }
+}
+```
+
+## 网页的渲染
+
+- 浏览器在渲染页面时，做了那些事：
+
+  1. 加载页面的 html 和 css（源码）
+  2. html 转换为 DOM，css 转换为 CSSOM
+  3. 将 DOM 和 CSSOM 构建成一课渲染树
+  4. 对渲染树进行 reflow（回流、重排）（计算元素的位置）
+  5. 对网页进行绘制 repaint（重绘）
+
+- 渲染树（Render Tree）
+
+  - 从根元素开始检查那些元素可见，以及他们的样式
+  - 忽略那些不可见的元素（display:none）
+
+- 重排、回流
+
+  - 计算渲染树中元素的大小和位置
+  - 当页面中的元素的大小或位置发生变化时，便会触发页面的重排（回流）
+  - width、height、margin、font-size ......
+  - 注意：每次修改这类样式都会触发一次重排！所以如果分词修改多个样式会触发重排多次，而重排是非常耗费系统资源的操作（昂贵），重排次数过多后，会导致网页的显示性能变差，在开发时我们应该尽量的减少重排的次数
+  - 在现代的前端框架中，这些东西都已经被框架优化过了！所以使用 vue、react 这些框架这些框架开发时，几乎不需要考虑这些问题，唯独需要注意的时，尽量减少在框架中直接操作 DOM
+
+- 重绘
+
+  - 绘制页面
+  - 当页面发生变化时，浏览器就会对页面进行重新的绘制
+
+- 例子：
+
+  ```html
+  <!DOCTYPE html>
+  <html lang="zh">
+      <head>
+          <meta charset="UTF-8" />
+          <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+          <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1.0"
+          />
+          <title>Document</title>
+          <style>
+              .box1 {
+                  width: 200px;
+                  height: 200px;
+                  background-color: orange;
+              }
+  
+              .box2 {
+                  background-color: tomato;
+              }
+  
+              .box3 {
+                  width: 300px;
+                  height: 400px;
+                  font-size: 20px;
+              }
+          </style>
+      </head>
+      <body>
+          <button id="btn">点我一下</button>
+          <hr />
+          <div id="box1" class="box1"></div>
+          <script>
+              btn.onclick = () => {
+                  // box1.classList.add("box2")
+                  // 可以通过修改class来间接的影响样式，来减少重排的次数
+                  // box1.style.width = "300px"
+                  // box1.style.height = "400px"
+                  // box1.style.fontSize = "20px"
+                  // box1.classList.add("box3")
+                  // box1.style.display = "none"
+                  // box1.style.width = "300px"
+                  // box1.style.height = "400px"
+                  // box1.style.fontSize = "20px"
+                  // div.style.display = "block"
+              }
+          </script>
+      </body>
+  </html>
+  ```
