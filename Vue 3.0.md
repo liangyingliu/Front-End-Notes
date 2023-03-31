@@ -885,3 +885,198 @@ export default {
       </body>
   </html>
   ```
+
+## 插槽
+
+```vue
+<script setup>
+import MyButton from "./components/MyButton.vue"
+import A from "./components/A.vue"
+import MyWrapper from "./components/MyWrapper.vue"
+const name = "孙悟空"
+</script>
+<template>
+    <h1>App组件</h1>
+    <!-- 
+        希望在父组件中指定子组件中的内容
+            - 我们可以通过插槽（slot）来实现该需求
+        <MyButton>插槽的入口</MyButton>
+        <button>
+            <slot></slot>  插槽的出口
+        </button>
+        通过插槽引入组件，位于父组件的作用域中
+    -->
+    <!-- <MyButton>
+        <A :name="name"></A>
+    </MyButton> -->
+
+    <MyWrapper>
+        <!-- 具名插槽的入口 -->
+        <template v-slot:aa>一级标题</template>
+        <template #bb>二级标题</template>
+    </MyWrapper>
+</template>
+```
+
+```vue
+<template>
+    <div>
+        <!-- 具名插槽 -->
+        <h1><slot name="aa"></slot></h1>
+        <h2><slot name="bb"></slot></h2>
+    </div>
+</template>
+```
+
+![image-20230331202549979](https://typora-liang.oss-cn-shenzhen.aliyuncs.com/image-20230331202549979.png)
+
+## 事件
+
+为元素绑定事件：
+
+- 绑定事件使用 `v-on` 指令：`v-on：事件名` 。使用 `@`  ：`@事件名`。
+
+- 绑定事件的两种方式：
+
+  - 内联事件处理器：事件触发时，直接执行 js 语句。（自己调用函数） 内联事件处理器，回调函数由我们自己调用，参数也是我们自己传递的。在内联事件处理器中，可以使用 `$even` t来访问事件对象
+  - 方法事件处理器：事件触发时，vue 会对事件的函数进行调用 。（vue 调用函数）方法事件处理器的回调函数，vue 会将事件对象作为参数传递。 这个事件对象就是 DOM 中原生的事件对象，它里边包含了事件触发时的相关信息。 通过该对象，可以获取：触发事件的对象、触发事件时一些情况 ...同时通过该对象，也可以对事件进行一些配置：取消事件的传播、取消事件的默认行为...
+  - vue 如何区分这两种处理器：
+    - 检查事件的值是否时合法的 js 标识符或属性访问路径，如果是，则表示它四方法事件处理器，否则，则是内联事件处理器。
+
+  ```vue
+  <script setup>
+  import { ref } from "vue"
+  const count = ref(0)
+  function clickHandler(event) {
+      console.log(event)
+  }
+  function clickHandler2(...args) {
+      /* 
+          内联事件处理器，回调函数由我们自己调用，参数也是我们自己传递的
+          
+          在内联事件处理器中，可以使用$event来访问事件对象
+      */
+      console.log(args)
+  }
+  function boxHandler(event, text) {
+      // 可以通过事件对象来取消事件的传播
+      event.stopPropagation()
+      alert(text)
+  }
+  function boxHandler2(text) {
+      // 可以通过事件对象来取消事件的传播
+      alert(text)
+  }
+  </script>
+  <template>
+      <h1>{{ count }}</h1>
+      <button @click="count++">点我一下</button>
+      <hr />
+      <!-- btn01.onclick = fn -->
+      <button @click="clickHandler">方法事件处理器</button>
+      <hr />
+      <button @click="clickHandler2($event, 1, 2, 'hello')">
+          内联事件处理器
+      </button>
+      <hr />
+      <!-- <div class="box1" @click="boxHandler($event, 'box1')">
+          box1
+          <div class="box2" @click="boxHandler($event, 'box2')">
+              box2
+              <div class="box3" @click="boxHandler($event, 'box3')">box3</div>
+          </div>
+      </div> -->
+  
+      <div class="box1" @click="boxHandler2('box1')">
+          box1
+          <div class="box2" @click.stop="boxHandler2('box2')">
+              box2
+              <div class="box3" @click.stop="boxHandler2('box3')">box3</div>
+          </div>
+      </div>
+  </template>
+  <style scoped>
+  .box1 {
+      width: 200px;
+      height: 200px;
+      background-color: #bfa;
+  }
+  .box2 {
+      width: 100px;
+      height: 100px;
+      background-color: orange;
+  }
+  .box3 {
+      width: 50px;
+      height: 50px;
+      background-color: tomato;
+  }
+  </style>
+  ```
+
+### 事件修饰符
+
+- `.stop` ：停止事件的传播。
+- `.capture `：在捕获阶段触发事件。
+- `.prevent`：取消默认行为。
+- `.self`：只有事件由自身触发时才会生效。
+- `.once`：绑定一个一次性的事件。
+- `.passive`：主要用于提升滚动事件的性能。（默认设置好了）
+
+```vue
+<!-- 单击事件将停止传递 -->
+<a @click.stop="doThis"></a>
+
+<!-- 提交事件将不再重新加载页面 -->
+<form @submit.prevent="onSubmit"></form>
+
+<!-- 修饰语可以使用链式书写 -->
+<a @click.stop.prevent="doThat"></a>
+
+<!-- 也可以只有修饰符 -->
+<form @submit.prevent></form>
+
+<!-- 仅当 event.target 是元素本身时才会触发事件处理器 -->
+<!-- 例如：事件处理器不来自子元素 -->
+<div @click.self="doThat">...</div>
+```
+
+## 透传
+
+​		透传属性：在组件上设置属性，会自动传递给组件的根元素。这样一来，可以方便我们在父组件中为子组件来设置属性。（多根组件不会自动透传）
+
+​		透传会发生在没有被声明为 `props` 和 `emit` 的属性上。在模板中我，可以通过 `$attrs` 来访问透传过来的属性，且可以用来手动指定透传过来的属性要添加到哪些元素上。
+
+```vue
+<script setup>
+import { useAttrs } from "vue"
+/* 
+    在script中，可以通过useAttrs()来获取透传过来的属性
+*/
+const attrs = useAttrs()
+console.log(attrs)
+</script>
+
+<script>
+export default {
+    inheritAttrs: false		//设置不自动透传
+}
+</script>
+
+<template>
+    <h2 class="box3" style="font-size: 60px">我是组件C</h2>
+
+    <!-- <h2 class="box3" :class="$attrs.class" style="font-size: 60px">
+        我是组件C
+    </h2> -->
+    <!-- <h3 :class="$attrs.class" :style="$attrs.style">我也是组件C</h3> -->
+
+    <!-- <h3 :="$attrs">我是h3</h3> -->
+    <!-- 
+        在模板中，可以通过$attrs来访问透传过来的属性，
+            可以手动指定透传过来的属性要添加到哪些元素
+    -->
+    <!-- {{ $attrs }} -->
+</template>
+```
+
