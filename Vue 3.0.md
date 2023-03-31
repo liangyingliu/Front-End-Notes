@@ -1080,3 +1080,28 @@ export default {
 </template>
 ```
 
+## v-model
+
+[组件 v-model | Vue.js (vuejs.org)](https://cn.vuejs.org/guide/components/v-model.html#multiple-v-model-bindings)
+
+## 依赖注入
+
+​		通过依赖注入，可以跨域多层组件向其他的组件传递数据。只要是其后代组件，就都可以访问到 `provide` 的数据。若一个组件的祖宗组件都有 `provide` 数据，则注入的是离该组件最近的父组件的数据。
+
+步骤：
+
+1. 设置依赖 `provide` 。
+2. 输入数据。
+3. 读取依赖的数据 `inject` 。(注入)
+
+```vue
+provide("name","老王")
+```
+
+```vue
+import {inject} from "vue"
+const name = inject("name")
+```
+
+
+
