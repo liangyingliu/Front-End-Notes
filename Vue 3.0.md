@@ -1082,6 +1082,10 @@ export default {
 
 ## v-model
 
+v-model 可用于数据的双向绑定，但只能用于表单类元素（输入类元素）。
+
+`v-model:value` 可以简写为 `v-model`，因为 `v-model` 的默认收集的就是 value 值。
+
 [组件 v-model | Vue.js (vuejs.org)](https://cn.vuejs.org/guide/components/v-model.html#multiple-v-model-bindings)
 
 ## 依赖注入
